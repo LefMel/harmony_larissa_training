@@ -8,5 +8,5 @@ Bayesian Latent Class models for diagnostic test evaluation and true prevalence 
 Software
 
 Packages
-runjags
-rjags
+- runjags
+- rjags
