@@ -5,9 +5,9 @@ author:
 - Polychronis Kostoulas, Matthew Denwood
 date: "`r Sys.Date()`"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 subtitle: Homework and software installation for the training school on diagnostic test evaluation and true prevalence estimation
 fontsize: 12pt
 ---
@@ -23,7 +23,7 @@ set.seed(2021-09-13)
 
 # Overview
 
-This document will help you to prepare for the HARMONY training workshop on diagnostic test evaluation and true prevalence estimation being held in Larissa, Greece, 20 - 22 September 2021.  The workshop involves both demonstration and hands-on training, so it is very important that you are using a computer with the necessary software installed. You will also need to download the teaching material from the GitHub site, so you might find it helpful to create an account with GitHub before the course so that you can access the material more easily (including any updates we make during the school).  Finally, the advanced training workshop will start from the assumption that you have a basic understanding of Bayes' theorem, and what the difference is between a likelihood, prior and posterior distribution.  The purpose of this document is to ensure that you have the necessary software installed, access to the GitHub repository where the teaching material will be made available, and to give you a brief refresher in the basics of Bayesian statistics.
+This document will help you to prepare for the HARMONY training workshop on diagnostic test evaluation and true prevalence estimation being held in Larissa, Greece, 20 - 22 September 2021.  The workshop involves both demonstration and hands-on training, so it is very important that you are using a computer with the necessary software installed. You will also need to download the teaching material from the GitHub site, so you might find it helpful to create an account with GitHub before the course so that you can access the material more easily (including any updates we make during the school).  Finally, the training workshop will start from the assumption that you have a basic understanding of Bayes' theorem, and what the difference is between a likelihood, prior and posterior distribution.  The purpose of this document is to ensure that you have the necessary software installed, access to the GitHub repository where the teaching material will be made available, and to give you a brief refresher in the basics of Bayesian statistics.
 
 
 # Software installation
@@ -65,7 +65,7 @@ We will primarily be using GitHub as a way to disseminate the lecture notes and 
 
 We have created a public repository containing the teaching material for the training workshop.  This means that anyone can view the teaching material at any time via the following website: https://github.com/LefMel/harmony_larissa_training
 
-You should see a number of folders listed with names "Pre_Course_Material", "Day1", "Day2" and "Day3". Within these folders are files like like "Session_1.Rmd", "Session_1.pdf" etc.  Each of the sessions for the online training workshop (including this preparation document) has a series of files:  the .Rmd is the original Rmarkdown document, and the .pdf and .html files are created from these.  You can click on any of these files to view them, although of the different file formats the .pdf version is probably easiest to download directly from the website.  There are two problems with this:
+You should see a number of folders listed with names "Pre_Course_Material", "Day1", "Day2" and "Day3". Within these folders are files like like "Session_Preparation.Rmd", "Session_Preparation.pdf" etc.  Each of the sessions for the online training workshop (including this preparation document) has a series of files:  the .Rmd is the original Rmarkdown document, and the .pdf and .html files are created from these.  You can click on any of these files to view them, although of the different file formats the .pdf version is probably easiest to download directly from the website.  There are two problems with this:
 
 1 - You will likely encounter problems when copy/pasting R code from the PDF files.
 
@@ -249,7 +249,7 @@ The shape of the posterior is determined by that of both the likelihood and the 
 
 ## Summarising the Posterior
 
-We will typically want to summarise the posterior distribution.  In frequentist statistics we would always report the maximum likelihood value, i.e. the parameter corresponding to the highest likelihood.  The equivalent to this in Bayesian statistics is the mode of the posterior, but we often report the median or mean of the posterior instead (the choice between these is somewhat arbitrary).  It is also important to report a confidence interval, which represents the degree of uncertainty in the posterior.  For our prevalence example (with 7/10 positive and a $Beta(2,2)$ prior), these estimates would be:
+We will typically want to summarise the posterior distribution.  In frequentist statistics we would always report the maximum likelihood value, i.e. the parameter corresponding to the highest likelihood.  The equivalent to this in Bayesian statistics is the mode of the posterior, but we often report the median or mean of the posterior instead (the choice between these is somewhat arbitrary).  It is also important to report a confidence interval, which represents the degree of uncertainty in the posterior.  For our prevalence example (with 7/10 positive and a $Beta(2,2)$ prior), these estimates (a,b values of the beta distribution) would be:
 
 ```{r echo=FALSE}
 a <- 2+7
@@ -348,7 +348,7 @@ So what is happening in this process?  The Metropolis algorithm is sampling valu
 The important part is that we can run this function and obtain results as follows:
 
 ```{r, echo=FALSE}
-set.seed(2021-06-18)
+set.seed(2021-09-13)
 ```
 
 ```{r}
@@ -395,7 +395,7 @@ Let's look at how to fix these problems.
 ## Burnin
 
 ```{r, echo=FALSE}
-set.seed(2021-06-18)
+set.seed(2021-09-13)
 ```
 
 When we ran the simulation last time, we set an initial value of 0.05 and it took a little while for the Metropolis algorithm to move away from this starting value because of the autocorrelation in the chains.  This is OK, but we don't actually want to count this "burnin" period as part of the posterior.  So we need to tell the algorithm to run for a few iterations before starting to sample from the posterior.  For example:
@@ -407,7 +407,7 @@ samples <- metropolis(burnin = 100, sample = 1000, initial_value=0.05)
 This time, we told the function to discard the first 100 samples (shown in red) and then take another 1000 samples from the posterior after this point.  This means that we can set the initial values to wherever we want, and it won't affect the samples we take (the blue part) even though it will affect the burnin period (the red part).  For example if we set an initial value of 0.99:
 
 ```{r, echo=FALSE}
-set.seed(2021-06-18)
+set.seed(2021-09-13)
 ```
 
 ```{r}
@@ -431,7 +431,7 @@ effectiveSize(samples)
 So we have the equivalent of approximately `r as.numeric(floor(effectiveSize(samples)))` independent samples from this posterior, which is not nearly enough to be a good approximation.  Ideally we would like at least 500 (or even 1000) independent samples, which means running the simulation for a lot more than 1000 iterations.  For example:
 
 ```{r, echo=FALSE}
-set.seed(2021-06-18)
+set.seed(2021-09-13)
 ```
 
 ```{r}
@@ -462,13 +462,13 @@ cat('True posterior 95% CI:', ci[1], '-', ci[2], '\n')
 Our sampled posterior is now much closer to the true posterior, although there is still a small difference due to the inherent randomness of the Monte Carlo integration.  This also means that every time we run this simulation we will get a slightly different answer - if we want to ensure we get precisely the same result then we need to set the random number generator seed in R using the set seed function before running the simulation:
 
 ```{r}
-set.seed(2021-06-18)
+set.seed(2021-09-13)
 samples <- metropolis(burnin = 1000, sample = 20000,
                       initial_value=0.99, plot=FALSE)
 # Mean of samples:
 mean(samples)
 
-set.seed(2021-06-18)
+set.seed(2021-09-13)
 samples <- metropolis(burnin = 1000, sample = 20000,
                       initial_value=0.99, plot=FALSE)
 # Mean of samples:
@@ -478,7 +478,7 @@ mean(samples)
 These two results are numerically identical because the same seed was used.  But the following simulation uses a different seed so gives slightly different results:
 
 ```{r}
-set.seed(2021-06-19)
+set.seed(2021-09-20)
 samples <- metropolis(burnin = 1000, sample = 20000,
                       initial_value=0.99, plot=FALSE)
 # Mean of samples:
