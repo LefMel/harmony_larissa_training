@@ -15,3 +15,6 @@
 # Check init properties
 # Demonstrate report
 # Further work with exported samples
+
+install.packages("devtools")
+devtools::install_github("kpatera/tPRiors")
