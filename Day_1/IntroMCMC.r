@@ -1,3 +1,4 @@
+set.seed(2231) # For reproducible results
 u<-runif(10000,0,1)
 plot(density(u))
 
@@ -63,7 +64,7 @@ x=seq(9,10,length=1000)
 plot(x,exp(-x),type="l")
 
 
-################################################  
+################################################   Done
 ######## Acceptrance/Rejection #################
 ################################################
 
@@ -71,15 +72,16 @@ triangle.pdf = function(x){
   ifelse((0 < x) & (x < 1), x, 
          ifelse((1 <= x) & (x < 2), 2 - x, 0)) 
 }
-
-triangle.pdf(seq(0, 2, by = 0.1))
+x=seq(0, 2, by = 0.01)
+y= triangle.pdf(x)
+plot(x,y,type="l",ylab="f(x)",xlab="x")
 runif(20,0,2)
 triangle_plot.dat = data.frame(x = seq(-0.5, 2.5, by = 0.01),
                                y = triangle.pdf(seq(-0.5, 2.5, by = 0.01)),
                                x_sample = runif(301, 0, 2),
                                y_sample = runif(301, 0, 1))
 library(ggplot2)
-jpeg(filename = "AR.jpg",width = 1300,height = 1200,res = 300)
+jpeg(filename = "AR.jpg",width = 1300,height = 1000,res = 300)
 ggplot(triangle_plot.dat, aes(x = x, y = y))+
   geom_line() + xlab("x") + ylab("Probability density function")+
   geom_point(aes(x_sample, y_sample), shape = 1,size=0.9)+
@@ -112,92 +114,133 @@ ggplot(triangle_plot.dat, aes(x = x, y = y)) +
   geom_line(color = "blue", size = 1.5) + xlab("x") + ylab("pdf") +
   geom_histogram(data = data.frame(x = triangle.sample), aes(x = x, y = ..density..), col = "gray" )
 
+
 plot(density(triangle.sample,adjust = 0.5),main = "")
 
+length(triangle.sample)/50000 # Probability of acceptance
 
 time<-proc.time()
-triangle.sample = accept_reject(triangle.pdf, 50000,prop.val = 1 ) # Optimal
+triangle.sample = accept_reject(triangle.pdf, 50000, prop.val = 1 ) # Optimal
 time-proc.time()
 
 
 time<-proc.time()
-triangle.sample = accept_reject(triangle.pdf, 50000,prop.val = 10) # Less optimal
+triangle.sample = accept_reject(triangle.pdf, 50000, prop.val = 10) # Less optimal
 time-proc.time()
 
 
-################################################  
+################################################  Done
 ######## Metropolis (random-walk) ##############
-################################################
+################################################ M Denwood tweaked example
 
 jpeg(filename = "Prior_Metropolis.jpg",width = 1000,height = 1000,res=150)
 plot(density(rbeta(10000,0.1,1)),main = "",xlab = "Prevalence")
 dev.off()
 
-round(table(rbinom(n = 5000000,size = 1,prob = 20/1000000))[2]/
-        table(rbinom(n = 5000000,size = 1,prob = 20/1000000))[1],7)
+round(table(rbinom(n = 5*10^7,size = 1,prob = 50/10^4))[2]/
+        table(rbinom(n = 5*10^7,size = 1,prob = 50/10^4))[1],7)
 
 
 library('coda')
-metropolis <- function(burnin = 0, sample = 10000, sigma = 0.05,
-                       initial_value = 0.05, plot=TRUE){
-  
+metropolis <- function(burnin = 0, sample = 1000000, sigma = 0.01,
+                       initial_value = 0.01, plot=TRUE){
   stopifnot(initial_value > 0, initial_value < 1)
   stopifnot(sigma > 0)
-  burnin <- as.integer(burnin); sample <- as.integer(sample)
+  burnin <- as.integer(burnin)
+  sample <- as.integer(sample)
   stopifnot(burnin >= 0)
   stopifnot(sample > 0)
-  
-  
   # Redefine these to work on the log scale:
-  llikelihood_fun <- function(prevalence) dbinom(7, 10, prevalence, log=TRUE)
-  lprior_fun <- function(prevalence) dbeta(prevalence, 2, 2, log=TRUE)
-  
+  llikelihood_fun <- function(prevalence)
+    dbinom(50, 10^4, prevalence, log=TRUE)
+  lprior_fun <- function(prevalence)
+    dbeta(prevalence, 0.1, 1, log=TRUE)
   parameters <- numeric(burnin+sample)
   parameters[1] <- initial_value
   current <- initial_value
   post <- llikelihood_fun(current) + lprior_fun(current)
-  
   for(i in 2:(burnin+sample)){
     proposal <- rnorm(1, current, sigma)
-    
     if(proposal > 0 && proposal < 1){
+      U=log(runif(1,0,1))
       newpost <- llikelihood_fun(proposal) + lprior_fun(proposal)
-      accept <- newpost > post || rbinom(1, 1, exp(newpost-post))
-      
+      accept <- U <= newpost-post      
       if(accept){
         current <- proposal
         post <- newpost
       }
     }
     parameters[i] <- current
-    
-    if(plot && burnin > 0){
-      plot(1:burnin, parameters[1:burnin], type='l', col='red',
-           xlim=c(1,burnin+sample), ylim=c(0,0.01),
-           main='Parameter values (red:burnin, blue:sample)',
-           ylab='prevalence', xlab='Iteration')
-      lines((burnin+1):(burnin+sample), parameters[-(1:burnin)], col='blue')
-    }else if(plot){
-      plot(1:sample, parameters, type='l', col='blue',
-           xlim=c(1,burnin+sample), ylim=c(0,0.01),
-           main='Parameter values (red:burnin, blue:sample)',
-           ylab='prevalence', xlab='Iteration')
-    }
-    parameters <- window(coda::as.mcmc(parameters), start=burnin+1)
-    varnames(parameters) <- 'prevalence'
-    return(parameters)
   }
   
+  if(plot && burnin > 0){
+    plot(1:burnin, parameters[1:burnin], type='l', col='red',
+         xlim=c(1,burnin+sample), #  ylim=c(0,1)
+         main='Parameter values (red:burnin, blue:sample)',
+         ylab='prevalence', xlab='Iteration')
+    lines((burnin+1):(burnin+sample), parameters[-(1:burnin)], col='blue')
+  }else if(plot){
+    plot(1:sample, parameters, type='l', col='blue',
+         xlim=c(1,burnin+sample),# ylim=c(0,1),
+         main='Parameter values (red:burnin, blue:sample)',
+         ylab='prevalence', xlab='Iteration')
+  }
+  parameters_coda <- window(coda::as.mcmc(parameters), start=burnin+1)
+  varnames(parameters_coda) <- 'prevalence'
+  return(list(parameters_coda=parameters_coda,parameters=parameters))
 }
 
-# Simple Diagnostics (EFF, Gelmans, Mix chains, Autocor)
+jpeg(filename = "Metropolis_Results.jpg",width = 1000,height = 1000,res=150)
+set.seed(2231)
+samples1 <- metropolis(burnin = 5000, sample = 10000, initial_value=0.01)
+dev.off()
+
+samples2 <- metropolis(burnin = 5000, sample = 10000, initial_value=0.0001)
+
+jpeg(filename = "Metropolis_Results_Mix.jpg",width = 1000,height = 1000,res=150)
+plot(samples1$parameters,type = 'l',col="blue",ylab = "Prevalence",xlab="Iteration",
+     main = "Multiple MCMC chains")
+lines(samples2$parameters,type = 'l',col="red")
+dev.off()
+
+
+set.seed(2231)
+samples1 <- metropolis(burnin = 5000, sample = 10000, initial_value=0.01)
+samples2 <- metropolis(burnin = 5000, sample = 10000, initial_value=0.0001)
+mean(samples1)
+effectiveSize(samples1$parameters_coda) # 10000/647.67=15.43 iterations to get an indepedent sample
+HPDinterval(samples1$parameters_coda) # True posterior 95% credible interval
+autocorr(samples$parameters_coda, lags=1)
+autocorr.plot(samples$parameters_coda)
+
+
+# Changing the variance of the candidate value.
+par(mfrow=c(1,3))
+samples_SmallS <- metropolis(sigma=0.00001, sample = 10000) # Moves only close
+samples_NormalS <- metropolis(sigma=0.01, sample = 10000) # Decent movement
+samples_largeS <- metropolis(sigma=1, sample = 10000) # Difficulty to identify move
+par(mfrow=c(1,3))
+geweke.plot(samples_SmallS$parameters_coda) # geweke.diag
+geweke.plot(samples_NormalS$parameters_coda)
+geweke.plot(samples_largeS$parameters_coda)
+
+1-pnorm(abs(geweke.diag(samples_largeS$parameters_coda)[1]$z)) # p-value for convergence.
+
+autocorr.plot(samples_SmallS$parameters_coda, lags=1) # autocorr
+autocorr.plot(samples_NormalS$parameters_coda, lags=1)
+autocorr.plot(samples_largeS$parameters_coda, lags=1)
+
+
+gelman.diag() # For multiple chains
+
+
 
 
 ################################################  
 ######## Gibbs sampling ########################
-################################################
+################################################ I Ntzoufras tweaked example
 # Dataa$temperature
-y<-rnorm(1000,35,10); bary<-mean(y); n<-length(y) 
+y<-c(32,36,37,34,38,36,33,36,37,35,32,35); bary<-mean(y); n<-length(y) 
 Iterations<-500
 muO<-0; s0<-100; a0<-0.001; b0<-0.001
 
