@@ -1,4 +1,7 @@
-################################################  
+u<-runif(10000,0,1)
+plot(density(u))
+
+################################################ Done  
 ######## Inverse transform method ##############
 ################################################
 
@@ -21,16 +24,43 @@ mean(3*u^2)
 # Example 2: Exponential distribution with lambda=2
 # FY(x)= P(Y<x)= int 2*exp(-2*y)dy= 1-exp(-2x)
 # FY^(-1)(y)=-ln(1-y)/2
+lambda      <-  2
 num.samples <-  10000
 U           <-  runif(num.samples)
-X           <- -log(1-U)/2
+X           <- -log(1-U)/lambda
 hist(X,freq=F)
-curve(dexp(x, rate=2),add=T)
+curve(dexp(x, rate=lambda),add=T)
 
 # Monte carlo integration
 mean(2*exp(-2*u))
 1-exp(-2)
 
+################################################  Done
+######## Simple Monte Carlo  ###################
+################################################
+sims=10000
+x=seq(0,1,length=sims)
+plot(x,exp(-x),type="l")
+
+
+u<-runif(sims,0,1)
+mean(exp(-u))*1 # Expected value from simulation
+(1-0)^2/sims *var(exp(-u)) # Variance/efficiency of simulation
+1-exp(-1) # Expected value from integration
+plot(density(exp(-u))) 
+
+Monte_Basic<-function(sims,a,b){
+  stopifnot(b>a)
+u<-runif(sims,a,b)
+val1<-mean(exp(-u))*(b-a)
+val2<-exp(-a)-exp(-b)
+varMC<-(b-a)^2/sims *var(exp(-u))
+return(c("MCmean",val1,"INTmean",val2,"MCvar",varMC))
+}
+Monte_Basic(10000,1,5)
+Monte_Basic(10000,9,10)
+x=seq(9,10,length=1000)
+plot(x,exp(-x),type="l")
 
 
 ################################################  
