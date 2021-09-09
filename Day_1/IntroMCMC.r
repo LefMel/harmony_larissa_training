@@ -208,7 +208,7 @@ set.seed(2231)
 samples1 <- metropolis(burnin = 5000, sample = 10000, initial_value=0.01)
 samples2 <- metropolis(burnin = 5000, sample = 10000, initial_value=0.0001)
 mean(samples1)
-effectiveSize(samples1$parameters_coda) # 10000/647.67=15.43 iterations to get an indepedent sample
+effectiveSize(samples1$parameters_coda) # 10000/647.67=15.43 iterations to get an independent sample
 HPDinterval(samples1$parameters_coda) # True posterior 95% credible interval
 autocorr(samples$parameters_coda, lags=1)
 autocorr.plot(samples$parameters_coda)
@@ -262,6 +262,13 @@ for (t in 1:Iterations){
 plot(theta[100:Iterations,1],type="l")
 plot(theta[100:Iterations,2],type="l")
 
-# Simple Diagnostics (EFF, Gelmans, Mix chains, Autocor)
+parameters_coda <- window(coda::as.mcmc(theta), start=burnin+1)
+varnames(parameters_coda) <- c('mu','sigma')
 
+
+effectiveSize(parameters_coda) # XX iterations to get an independent sample
+HPDinterval(parameters_coda) # True posterior 95% credible interval
+autocorr(parameters_coda, lags=1)
+autocorr.plot(parameters_coda)
+geweke.plot(parameters_coda) # geweke.diag
 
