@@ -240,8 +240,9 @@ gelman.diag() # For multiple chains
 ######## Gibbs sampling ########################
 ################################################ I Ntzoufras tweaked example
 # Dataa$temperature
+burnin=450
 y<-c(32,36,37,34,38,36,33,36,37,35,32,35); bary<-mean(y); n<-length(y) 
-Iterations<-500
+Iterations<-20000
 muO<-0; s0<-100; a0<-0.001; b0<-0.001
 
 theta <- matrix(nrow=Iterations, ncol=2) 
@@ -258,9 +259,9 @@ for (t in 1:Iterations){
   cur.s <- sqrt(1/cur.tau) 
   theta[t,]<-c( cur.mu, cur.s)
 }
-
-plot(theta[100:Iterations,1],type="l")
-plot(theta[100:Iterations,2],type="l")
+par(mfrow=c(2,1))
+plot(theta[450:Iterations,1],type="l")
+plot(theta[450:Iterations,2],type="l")
 
 parameters_coda <- window(coda::as.mcmc(theta), start=burnin+1)
 varnames(parameters_coda) <- c('mu','sigma')
@@ -270,5 +271,5 @@ effectiveSize(parameters_coda) # XX iterations to get an independent sample
 HPDinterval(parameters_coda) # True posterior 95% credible interval
 autocorr(parameters_coda, lags=1)
 autocorr.plot(parameters_coda)
-geweke.plot(parameters_coda) # geweke.diag
-
+geweke.plot(parameters_coda)
+geweke.diag(parameters_coda) # z-score
