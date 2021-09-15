@@ -12,7 +12,7 @@
 <meta name="author" content="Eleftherios Meletis, Konstantinos Pateras," />
 <meta name="author" content="Polychronis Kostoulas, Matthew Denwood" />
 
-<meta name="date" content="2021-09-07" />
+<meta name="date" content="2021-09-15" />
 
 <title>Pre-course material - HARMONY Training School - Larissa Greece</title>
 
@@ -1625,19 +1625,19 @@ pre code {
 <h3 class="subtitle">Homework and software installation for the training school on diagnostic test evaluation and true prevalence estimation</h3>
 <h4 class="author">Eleftherios Meletis, Konstantinos Pateras,</h4>
 <h4 class="author">Polychronis Kostoulas, Matthew Denwood</h4>
-<h4 class="date">2021-09-07</h4>
+<h4 class="date">2021-09-15</h4>
 
 </div>
 
 
 <div id="overview" class="section level1">
 <h1>Overview</h1>
-<p>This document will help you to prepare for the HARMONY training workshop on diagnostic test evaluation and true prevalence estimation being held in Larissa, Greece, 20 - 22 September 2021. The workshop involves both demonstration and hands-on training, so it is very important that you are using a computer with the necessary software installed. You will also need to download the teaching material from the GitHub site, so you might find it helpful to create an account with GitHub before the course so that you can access the material more easily (including any updates we make during the school). Finally, the training workshop will start from the assumption that you have a basic understanding of Bayes’ theorem, and what the difference is between a likelihood, prior and posterior distribution. The purpose of this document is to ensure that you have the necessary software installed, access to the GitHub repository where the teaching material will be made available, and to give you a brief refresher in the basics of Bayesian statistics.</p>
+<p>This document will help you to prepare for the HARMONY training school on diagnostic test evaluation and true prevalence estimation being held in Larissa, Greece, 20 - 22 September 2021. The workshop involves both demonstration and hands-on training, so it is very important that you are using a computer with the necessary software installed. You will also need to download the teaching material from the GitHub site, so you might find it helpful to create an account with GitHub before the course so that you can access the material more easily (including any updates we make during the school). Finally, the training workshop will start from the assumption that you have a basic understanding of Bayes’ theorem, and what the difference is between a likelihood, prior and posterior distribution. The purpose of this document is to ensure that you have the necessary software installed, access to the GitHub repository where the teaching material will be made available, and to give you a brief refresher in the basics of Bayesian statistics.</p>
 </div>
 <div id="software-installation" class="section level1">
 <h1>Software installation</h1>
 <p>You need to install R (version 4.0.0 or later; preferably version 4.1.0) from <a href="https://cran.r-project.org/" class="uri">https://cran.r-project.org/</a> and we recommend that you also use Rstudio which can be downloaded separately from <a href="https://www.rstudio.com/products/rstudio/download/" class="uri">https://www.rstudio.com/products/rstudio/download/</a></p>
-<p>Please also install the latest versions of the following R packages from CRAN (or using the install.packages() function): tidyverse, PriorGen, rjags, runjags, coda, TeachingDemos</p>
+<p>Please also install the latest versions of the following R packages from CRAN (or using the install.packages() function): tidyverse, PriorGen, rjags, runjags, coda, TeachingDemos, ggmcmc</p>
 <p>You will also need the standalone JAGS software (version 4.3.0 or later) for the course - download the installer for your platform from here: <a href="https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/" class="uri">https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/</a></p>
 <p>To check that you have installed the software correctly please run the following code within R (or RStudio) and make sure that no errors are produced:</p>
 <pre class="r"><code>stopifnot(getRversion() &gt;= &quot;4.0.0&quot;)
@@ -1647,6 +1647,7 @@ stopifnot(require('rjags'))
 stopifnot(require('runjags'))
 stopifnot(require('coda'))
 stopifnot(require('TeachingDemos'))
+stopifnot(require('ggmcmc'))
 stopifnot(testjags()$JAGS.available)
 stopifnot(numeric_version(testjags()$JAGS.version) &gt;= &quot;4.3.0&quot;)
 stopifnot(testjags()$rjags.found)
@@ -1662,8 +1663,8 @@ stopifnot(numeric_version(testjags()$rjags.version) &gt;= &quot;4-8&quot;)</code
 </div>
 <div id="simple-web-usage" class="section level2">
 <h2>Simple Web Usage</h2>
-<p>We have created a public repository containing the teaching material for the training workshop. This means that anyone can view the teaching material at any time via the following website: <a href="https://github.com/LefMel/harmony_larissa_training" class="uri">https://github.com/LefMel/harmony_larissa_training</a></p>
-<p>You should see a number of folders listed with names “Pre_Course_Material”, “Day1”, “Day2” and “Day3”. Within these folders are files like like “Session_Preparation.Rmd”, “Session_Preparation.pdf” etc. Each of the sessions for the online training workshop (including this preparation document) has a series of files: the .Rmd is the original Rmarkdown document, and the .pdf and .html files are created from these. You can click on any of these files to view them, although of the different file formats the .pdf version is probably easiest to download directly from the website. There are two problems with this:</p>
+<p>We have created a public repository containing the teaching material for the training school. This means that anyone can view the teaching material at any time via the following website: <a href="https://github.com/LefMel/harmony_larissa_training" class="uri">https://github.com/LefMel/harmony_larissa_training</a></p>
+<p>You should see a number of folders listed with names “Pre_Course_Material”, “Day1”, “Day2” and “Day3”. Within these folders are files like like “Session_Preparation.Rmd”, “Session_Preparation.pdf” etc. Each of the sessions for the training school (including this preparation document) has a series of files: the .Rmd is the original Rmarkdown document, and the .pdf and .html files are created from these. You can click on any of these files to view them, although of the different file formats the .pdf version is probably easiest to download directly from the website. There are two problems with this:</p>
 <p>1 - You will likely encounter problems when copy/pasting R code from the PDF files.</p>
 <p>2 - If/when any of the files are updated, you will not get an automatic update of the new version.</p>
 <p>We therefore recommend that you follow the instructions below to clone the repository directly to your computer.</p>
@@ -1688,7 +1689,7 @@ stopifnot(numeric_version(testjags()$rjags.version) &gt;= &quot;4-8&quot;)</code
 </div>
 <div id="more-information" class="section level2">
 <h2>More information</h2>
-<p>That is pretty much all you need to know for the training workshop but there are some good tutorials available, for example: <a href="https://happygitwithr.com" class="uri">https://happygitwithr.com</a>.</p>
+<p>That is pretty much all you need to know for the training school but there are some good tutorials available, for example: <a href="https://happygitwithr.com" class="uri">https://happygitwithr.com</a>.</p>
 </div>
 </div>
 <div id="revision-of-basic-principles" class="section level1">
@@ -2019,7 +2020,7 @@ effectiveSize(samples)</code></pre>
 <p>In the real world we would very rarely use a Metropolis algorithm, but it is a useful exercise to understand the basic concepts. You can think of all other types of MCMC as used by JAGS/BUGS (and also Hamiltonian Monte Carlo as used by Stan) as being extensions of this same principle. Crucially, you ALWAYS need to make sure of the following two key points before trusting any estimates made from your sampled posteriors:</p>
 <p>1 - Make sure that the chain(s) have converged, and that a sufficient burnin period has been run before starting to sample. The two most common methods of doing this are to look at the potential scale reduction factor (psrf) of the Gelman-Rubin statistic, and to look at trace plots (typically of more than 1 independent chain) for each parameter to make sure the chains have converged on the stationary posterior. This is extremely important, and can be tricky.</p>
 <p>2 - Make sure that you have a sufficient effective sample size. This is relatively easy to do, simply by remembering to check the effective sample size (this should be produced by whatever software you are using) to make sure it is over at least 500 (and preferably 1000) for all parameters of interest.</p>
-<p>We will reinforce these concepts (and show you how to assess them for models run in JAGS) during the training workshop.</p>
+<p>We will reinforce these concepts (and show you how to assess them for models run in JAGS) during the training school.</p>
 </div>
 </div>
 
