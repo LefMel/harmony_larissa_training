@@ -259,9 +259,31 @@ for (t in 1:Iterations){
   cur.s <- sqrt(1/cur.tau) 
   theta[t,]<-c( cur.mu, cur.s)
 }
-par(mfrow=c(2,1))
-plot(theta[450:Iterations,1],type="l")
-plot(theta[450:Iterations,2],type="l")
+
+jpeg(filename = "Gibbs_Results_Uni.jpg",width = 1000,height = 700,res=150)
+par(mfrow=c(1,2))
+plot(theta[450:Iterations,1],type="l",main = "mu", ylab="")
+plot(theta[450:Iterations,2],type="l",main = "sigma", ylab="")
+dev.off()
+
+jpeg(filename = "Gibbs_Results_both.jpg",width = 1000,height = 1000,res=150)
+par(mfrow=c(2,2))
+plot(theta[450:459,1],theta[450:459,2],
+     type="l",main = "[10]", ylab="sigma", xlab="mu",lwd=0.1)
+plot(theta[450:474,1],theta[450:474,2],
+     type="l",main = "[25]", ylab="sigma", xlab="mu",lwd=0.1)
+plot(theta[450:649,1],theta[450:649,2],
+     type="l",main = "[200]", ylab="sigma", xlab="mu",lwd=0.1)
+plot(theta[450:Iterations,1],theta[450:Iterations,2],
+     type="p",main = "[19550]", ylab="sigma", xlab="mu",lwd=0.1)
+dev.off()
+
+jpeg(filename = "Gibbs_Results_both_stepbystep.jpg",width = 1000,height = 1000,res=150)
+plot(rep(theta[450:459,2],each=2),c(NA,rep(theta[450:459,1],each=2)[-20]),
+     type="l",main = "[10]", ylab="sigma", xlab="mu",lwd=0.1)
+
+dev.off()
+
 
 parameters_coda <- window(coda::as.mcmc(theta), start=burnin+1)
 varnames(parameters_coda) <- c('mu','sigma')
@@ -273,3 +295,4 @@ autocorr(parameters_coda, lags=1)
 autocorr.plot(parameters_coda)
 geweke.plot(parameters_coda)
 geweke.diag(parameters_coda) # z-score
+1-pnorm(abs(geweke.diag(parameters_coda)[1]$z)) # p-value for convergence.
