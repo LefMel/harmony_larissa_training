@@ -240,6 +240,7 @@ gelman.diag() # For multiple chains
 ######## Gibbs sampling ########################
 ################################################ I Ntzoufras tweaked example
 # Dataa$temperature
+set.seed(234)
 burnin=450
 y<-c(32,36,37,34,38,36,33,36,37,35,32,35); bary<-mean(y); n<-length(y) 
 Iterations<-20000
@@ -279,7 +280,7 @@ plot(theta[450:Iterations,1],theta[450:Iterations,2],
 dev.off()
 
 jpeg(filename = "Gibbs_Results_both_stepbystep.jpg",width = 1000,height = 1000,res=150)
-plot(rep(theta[450:459,2],each=2),c(NA,rep(theta[450:459,1],each=2)[-20]),
+plot(c(NA,rep(theta[450:459,1],each=2)[-20]),rep(theta[450:459,2],each=2),
      type="l",main = "[10]", ylab="sigma", xlab="mu",lwd=0.1)
 
 dev.off()
