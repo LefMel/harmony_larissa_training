@@ -1,0 +1,789 @@
+---
+title: "The Hui-Walter model"
+author:
+- Eleftherios Meletis, Konstantinos Pateras,
+- Polychronis Kostoulas, Matthew Denwood
+date: '2021-09-20'
+output:
+  slidy_presentation: default
+  html_document: default
+  ioslides_presentation: default
+  pdf_document: default
+  beamer_presentation:
+    pandoc_args:
+    - -t
+    - beamer
+    slide_level: 2
+header-includes: \input{../rsc/preamble}
+colortheme: seahorse
+params:
+  presentation: yes
+theme: metropolis
+aspectratio: 43
+---
+
+```{r rendering, eval=FALSE, include=FALSE}
+# To render this as PDF (beamer) slides run:
+rmarkdown::render('Hui-Walter_models.Rmd', 'beamer_presentation', params=list(presentation=TRUE))
+# And for html:
+rmarkdown::render('Hui-Walter_models.Rmd', 'html_document', params=list(presentation=FALSE))
+```
+
+```{r setup, include=FALSE}
+library("tidyverse")
+library("runjags")
+library("rjags")
+runjags.options(silent.jags=TRUE, silent.runjags=TRUE)
+set.seed(2021-09-20)
+
+# Reduce the width of R code output for PDF only:
+if(params$presentation) options(width=60)
+knitr::opts_chunk$set(echo = TRUE)
+
+# Reduce font size of R code output for Beamer:
+if(params$presentation){
+  knitr::knit_hooks$set(size = function(before, options, envir) {
+    if(before){
+      knitr::asis_output(paste0("\\", options$size))
+    }else{
+      knitr::asis_output("\\normalsize")
+    }
+  })
+  knitr::opts_chunk$set(size = "scriptsize")
+}
+
+# Collapse successive chunks:
+space_collapse <- function(x){ gsub("```\n*```r*\n*", "", x) }
+# Reduce space between chunks:
+space_reduce <- function(x){ gsub("```\n+```\n", "", x) }
+knitr::knit_hooks$set(document = space_collapse)
+
+# To collect temporary filenames:
+cleanup <- character(0)
+```
+
+## Hui-Walter Model (I)
+
+- A particular model formulation that was originally designed for evaluating diagnostic tests in the absence of a gold standard
+
+- Not originally/necessarily Bayesian - implemented using Maximum Likelihood 
+  
+- But evaluating an imperfect test against another imperfect test is a bit like pulling a rabbit out of a hat
+  * If we don't know the true disease status, how can we estimate sensitivity or specificity for either test?
+
+- Reference: Hui, S. L., & Walter, S. D. (1980). Estimating the error rates of diagnostic tests. Biometrics, 167-171.
+
+
+## Hui-Walter Model (II)
+
+- The Hui-Walter model is also known as the two_test - two_population setting
+
+- We will start with the two_test - one_population setting (`hw_definition`) and continue adding both tests and populations
+
+
+## Two_test - One_population setting
+
+- The data are summarized in a two_x_two table (2^2 cells)
+
+- or in a vector that contains all possible test results combinations
+
+
+## Model Specification
+
+```{r include=FALSE}
+hw_definition <- c("model{
+  Cross_Classified_Data ~ dmulti(prob, N)
+  
+  # Test1+ Test2+
+	prob[1] <- (prev * ((se[1])*(se[2]))) + ((1-prev) * ((1-sp[1])*(1-sp[2])))
+  
+  # Test1+ Test2-
+	prob[2] <- (prev * ((se[1])*(1-se[2]))) + ((1-prev) * ((1-sp[1])*(sp[2])))
+
+  # Test1- Test2+
+	prob[3] <- (prev * ((1-se[1])*(se[2]))) + ((1-prev) * ((sp[1])*(1-sp[2])))
+
+  # Test1- Test2-
+	prob[4] <- (prev * ((1-se[1])*(1-se[2]))) + ((1-prev) * ((sp[1])*(sp[2])))
+
+  prev ~ dbeta(1, 1)
+  se[1] ~ dbeta(1, 1)
+  sp[1] ~ dbeta(1, 1)
+  se[2] ~ dbeta(1, 1)
+  sp[2] ~ dbeta(1, 1)
+
+  #data# Cross_Classified_Data, N
+  #monitor# prev, prob, se, sp, deviance
+  #inits# prev, se, sp
+}
+")
+cat(hw_definition, sep='', file='basic_hw.txt')
+```
+
+
+```{r comment='', echo=FALSE}
+cleanup <- c(cleanup, 'basic_hw.txt')
+cat(hw_definition[1], sep='\n')
+```
+
+---
+
+```{r comment='', echo=FALSE}
+cat(hw_definition[2], sep='\n')
+```
+
+---
+
+```{r}
+twoXtwo <- matrix(c(36, 4, 12, 48), ncol=2, nrow=2)
+twoXtwo
+```
+
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+library('runjags')
+
+Cross_Classified_Data <- as.numeric(twoXtwo)
+N <- sum(Cross_Classified_Data)
+
+prev <- list(chain1=0.05, chain2=0.95)
+se <- list(chain1=c(0.01,0.99), chain2=c(0.99,0.01))
+sp <- list(chain1=c(0.01,0.99), chain2=c(0.99,0.01))
+
+results <- run.jags('basic_hw.txt', n.chains=2)
+```
+
+[Remember to check convergence and effective sample size!]
+
+---
+
+```{r, eval=FALSE}
+results
+```
+
+```{r include=FALSE}
+hw_definition_inits <- c("model{
+  Cross_Classified_Data ~ dmulti(prob, N)
+  
+  # Test1+ Test2+
+	prob[1] <- (prev * ((se[1])*(se[2]))) + ((1-prev) * ((1-sp[1])*(1-sp[2])))
+
+  # Test1+ Test2-
+	prob[2] <- (prev * ((se[1])*(1-se[2]))) + ((1-prev) * ((1-sp[1])*(sp[2])))
+
+  # Test1- Test2+
+	prob[3] <- (prev * ((1-se[1])*(se[2]))) + ((1-prev) * ((sp[1])*(1-sp[2])))
+
+  # Test1- Test2-
+	prob[4] <- (prev * ((1-se[1])*(1-se[2]))) + ((1-prev) * ((sp[1])*(sp[2])))
+  
+
+  prev ~ dbeta(1, 1)
+  se[1] ~ dbeta(1, 1)
+  sp[1] ~ dbeta(1, 1)
+  se[2] ~ dbeta(1, 1)
+  sp[2] ~ dbeta(1, 1)
+
+  #data# Cross_Classified_Data, N
+  #monitor# prev, prob, se, sp, deviance
+  #inits# prev, se, sp, .RNG.name, .RNG.seed
+}
+")
+cat(hw_definition_inits, sep='', file='basic_hw_inits.txt')
+cleanup <- c(cleanup, 'basic_hw_inits.txt')
+```
+
+```{r echo=FALSE, results="hide"}
+.RNG.name <- list("base::Super-Duper", "base::Wichmann-Hill")
+.RNG.seed <- list(15, 16)
+results <- run.jags('basic_hw_inits.txt', n.chains=2, silent.jags=TRUE)
+results
+
+pt <- plot(results)
+```
+
+```{r echo=FALSE}
+res <- summary(results)[,c(1:3,9,11)]
+res[] <- round(res, 3)
+knitr::kable(res)
+```
+
+- Does anybody spot a problem?
+
+
+- - -
+
+```{r echo=FALSE}
+print(pt[["prob[1].plot1"]])
+```
+
+- - -
+
+```{r echo=FALSE}
+print(pt[["prev.plot1"]])
+```
+
+- - -
+
+```{r echo=FALSE}
+print(pt[["se[1].plot1"]])
+```
+
+- - -
+
+```{r echo=FALSE}
+print(pt[["sp[1].plot1"]])
+```
+
+- - -
+
+```{r echo=FALSE}
+print(pt[["deviance.plot1"]])
+```
+
+- - -
+
+```{r echo=FALSE}
+print(pt[["crosscorr"]])
+```
+
+## Label Switching
+
+How to interpret a test with Se=0% and Sp=0%?
+
+
+  * The test is perfect - we are just holding it upside down...
+
+
+We can force Se+Sp >= 1:
+Jouden's Index Se + Sp -1 >= 0:
+
+```{r eval=FALSE}
+  se[1] ~ dbeta(1, 1)
+  sp[1] ~ dbeta(1, 1)T(1-se[1], )
+```
+
+Or:
+
+```{r eval=FALSE}
+  se[1] ~ dbeta(1, 1)T(1-sp[1], )
+  sp[1] ~ dbeta(1, 1)
+```
+
+This allows the test to be useless, but not worse than useless.
+
+- - -
+
+Alternatively we can have the weakly informative priors:
+
+```{r eval=FALSE}
+  se[1] ~ dbeta(2, 1)
+  sp[1] ~ dbeta(2, 1)
+```
+
+To give the model some information that we expect the test characteristics to be closer to 100% than 0%.
+
+. . .
+
+Or we can use stronger priors for one or both tests.
+
+
+## Priors
+
+A quick way to see the distribution of a prior:
+
+```{r, fig.width=3, fig.height=3}
+curve(dbeta(x, 1, 1), from=0, to=1)
+qbeta(c(0.025,0.975), shape1=1, shape2=1)
+```
+
+---
+
+This was minimally informative, but how does that compare to a weakly informative prior for e.g. sensitivity?
+
+```{r, fig.width=3, fig.height=3}
+curve(dbeta(x, 2, 1), from=0, to=1)
+qbeta(c(0.025,0.975), shape1=2, shape2=1)
+```
+
+---
+
+```{r}
+qbeta(c(0.025,0.975), shape1=2, shape2=1)
+```
+
+Or more accurately:
+
+```{r}
+library("TeachingDemos")
+hpd(qbeta, shape1=2, shape2=1)
+```
+
+Credible vs confidence intervals:
+
+  - For MCMC these are usually calculated using highest posterior density (HPD) intervals
+  - Therefore there is a difference between:
+      - `qbeta(c(0.025,0.975), ...)`
+      - `hpd(qbeta, ...)`
+  - Technically HPD intervals are credible intervals...
+  
+---
+
+What about a more informative prior?
+
+```{r, fig.width=3, fig.height=3}
+curve(dbeta(x, 20, 2), from=0, to=1)
+qbeta(c(0.025,0.975), shape1=20, shape2=2)
+hpd(qbeta, shape1=20, shape2=2)
+```
+
+## Choosing a prior
+
+What we want is e.g. Beta(20,1)
+
+But typically we have median and 95% confidence intervals from a paper, e.g.:
+
+"The median (95% CI) estimates of the sensitivity and specificity of the shiny new test were 94% (92-96%) and 99% (97-100%) respectively"
+
+. . .
+
+How can we generate a Beta( , ) prior from this?
+
+## The PriorGen package
+
+"The median (95% CI) estimates of the sensitivity and specificity of the shiny new test were 94% (92-96%) and 99% (97-100%)"
+
+```{r}
+library("PriorGen")
+findbeta(themedian = 0.94, percentile=0.95, percentile.value = 0.92)
+hpd(qbeta, shape1=429.95, shape2=27.76)
+```
+
+
+Note: `themedian` could also be `themean`
+
+---
+
+```{r}
+curve(dbeta(x, shape1=429.95, shape2=27.76))
+```
+
+## Initial values
+
+Part of the problem before was also that we were specifying extreme initial values:
+
+```{r}
+se <- list(chain1=c(0.01,0.99), chain2=c(0.99,0.01))
+sp <- list(chain1=c(0.01,0.99), chain2=c(0.99,0.01))
+```
+
+. . .
+
+Let's change these to:
+
+```{r}
+se <- list(chain1=c(0.5,0.99), chain2=c(0.99,0.5))
+sp <- list(chain1=c(0.5,0.99), chain2=c(0.99,0.5))
+```
+
+
+## Analysing simulated data
+
+This is useful to check that we can recover parameter values!
+
+```{r}
+# Set a random seed so that the data are reproducible:
+set.seed(2021-09-20)
+
+sensitivity <- c(0.9, 0.6)
+specificity <- c(0.95, 0.9)
+N <- 1000
+prevalence <- 0.5
+
+data <- tibble(Status = rbinom(N, 1, prevalence)) %>%
+  mutate(Test1 = rbinom(N, 1, sensitivity[1]*Status + (1-specificity[1])*(1-Status))) %>%
+  mutate(Test2 = rbinom(N, 1, sensitivity[2]*Status + (1-specificity[2])*(1-Status)))
+
+twoXtwo <- with(data, table(Test1, Test2))
+Cross_Classified_Data <- as.numeric(twoXtwo) #str(Cross_Classified_Data) = Vector
+```
+
+. . .
+
+We know that e.g. the first test has Sensitivity of 90% and Specificity of 95% - so the model *should* be able to tell us that...
+
+## Lunch Break
+
+Hands - On Training Session 
+
+we will come back with some exercises on the hw_definition model
+
+## Point to consider {.fragile}
+
+How does changing the prior distributions for the se and sp of one test affect the inference for the other test parameters?
+
+What happens if you set an initial value for a parameter outside of the parameter space?
+
+
+## Exercise 1 {.fragile}
+
+Simulate some data using the code given above (under "Analysing simulated data"), and run it using the following Hui-Walter model with truncated Beta(1,1) priors for sensitivity and specificity of both tests:
+
+```{r echo=FALSE, comment=''}
+hw_definition <- c("model{
+  Cross_Classified_Data ~ dmulti(prob, N)
+  
+  # Test1- Test2-
+	prob[1] <- (prev * ((1-se[1])*(1-se[2]))) + ((1-prev) * ((sp[1])*(sp[2])))
+	
+  # Test1+ Test2-
+	prob[2] <- (prev * ((se[1])*(1-se[2]))) + ((1-prev) * ((1-sp[1])*(sp[2])))
+
+  # Test1- Test2+
+	prob[3] <- (prev * ((1-se[1])*(se[2]))) + ((1-prev) * ((sp[1])*(1-sp[2])))
+	
+	# Test1+ Test2+
+	prob[4] <- (prev * ((se[1])*(se[2]))) + ((1-prev) * ((1-sp[1])*(1-sp[2])))
+	
+
+  prev ~ dbeta(1, 1)
+  se[1] ~ dbeta(1, 1)T(1-sp[1], )
+  sp[1] ~ dbeta(1, 1)
+  se[2] ~ dbeta(1, 1)T(1-sp[2], )
+  sp[2] ~ dbeta(1, 1)
+
+  #data# Cross_Classified_Data, N
+  #monitor# prev, prob, se, sp, deviance
+  #inits# prev, se, sp
+}
+")
+cat(hw_definition, sep='', file='hw_truncated.txt')
+cleanup <- c(cleanup, 'hw_truncated.txt')
+cat(hw_definition)
+```
+
+What are the results?
+
+## Solution 1 {.fragile}
+
+```{r}
+prev <- list(chain1=0.05, chain2=0.95)
+se <- list(chain1=c(0.5,0.99), chain2=c(0.99,0.5))
+sp <- list(chain1=c(0.5,0.99), chain2=c(0.99,0.5))
+
+results_tr_1000 <- run.jags('hw_truncated.txt', n.chains=2, sample=10000)
+
+# Note: this is only commented out to save space in the exercise file!
+# plot(results_tr_1000)
+# check convergence and effective sample size, and then interpret results:
+results_tr_1000
+```
+
+Note that model does converge, but the effective sample size is NOT high enough with 10000 samples - we need to run for longer to get reliable results:
+
+```{r}
+results_tr_1000 <- run.jags('hw_truncated.txt', n.chains=2, sample=75000)
+
+# Note: this is only commented out to save space in the exercise file!
+# plot(results_tr_1000)
+# check convergence and effective sample size, and then interpret results:
+results_tr_1000
+```
+
+Now we can see that the 95% confidence intervals for prev, se and sp are all quite wide, but at least they do contain the simulation values!
+
+
+
+
+## Exercise 2 {.fragile}
+
+- Find beta distribution priors for:
+
+  * Sensitivity: mean estimate = 0.9 (95% CI: 0.85 - 0.95)
+  * Specificity: mean estimate = 0.95 (95%CI: 0.92-0.97)
+
+- Look at these distributions using curve and hpd
+
+- Modify your model from exercise 1 using these priors for test 1 (leave the priors for test 2 unchanged)
+  - Make sure to name your new model something different, so that you can easily run it using either set of priors for test 1!
+
+- How does this affect the inference for test 2?
+
+## Solution 2 {.fragile}
+
+Parameters for Sensitivity: mean estimate = 0.9 (95% CI: 0.85 - 0.95):
+
+[Note: this is `themean` rather than `themedian`!]
+
+```{r}
+PriorGen::findbeta(themean=0.9, percentile = 0.975, percentile.value = 0.85)
+hpd(qbeta, shape1=148.43, shape2=16.49)
+curve(dbeta(x, 148.43, 16.49), from=0, to=1)
+```
+
+Parameters for Specificity: mean estimate = 0.95 (95%CI: 0.92-0.97):
+
+```{r}
+PriorGen::findbeta(themean=0.95, percentile = 0.975, percentile.value = 0.92)
+hpd(qbeta, shape1=240.03, shape2=12.63)
+curve(dbeta(x, 240.03, 12.63), from=0, to=1)
+```
+
+Here is the updated model using the new prior values:
+
+```{r echo=FALSE, comment=''}
+hw_definition <- c("model{
+  Cross_Classified_Data ~ dmulti(prob, N)
+
+  # Test1- Test2-
+	prob[1] <- (prev * ((1-se[1])*(1-se[2]))) + ((1-prev) * ((sp[1])*(sp[2])))
+	
+  # Test1+ Test2-
+	prob[2] <- (prev * ((se[1])*(1-se[2]))) + ((1-prev) * ((1-sp[1])*(sp[2])))
+
+  # Test1- Test2+
+	prob[3] <- (prev * ((1-se[1])*(se[2]))) + ((1-prev) * ((sp[1])*(1-sp[2])))
+	
+	# Test1+ Test2+
+	prob[4] <- (prev * ((se[1])*(se[2]))) + ((1-prev) * ((1-sp[1])*(1-sp[2])))
+
+
+  prev ~ dbeta(1, 1)
+  se[1] ~ dbeta(148.43, 16.49)T(1-sp[1], )
+  sp[1] ~ dbeta(240.03, 12.63)
+  se[2] ~ dbeta(1, 1)T(1-sp[2], )
+  sp[2] ~ dbeta(1, 1)
+
+  #data# Cross_Classified_Data, N
+  #monitor# prev, prob, se, sp, deviance
+  #inits# prev, se, sp
+}
+")
+cat(hw_definition, sep='', file='hw_stronginf.txt')
+cleanup <- c(cleanup, 'hw_stronginf.txt')
+cat(hw_definition)
+```
+
+```{r}
+results_si_1000 <- run.jags('hw_stronginf.txt', n.chains=2)
+
+# Note: this is only commented out to save space in the exercise file!
+# plot(results_si_1000)
+# check convergence and effective sample size, and then interpret results:
+results_si_1000
+```
+
+Note that the 95% confidence intervals are much narrower now, including for test 2!!!  The effective sample size is also much higher because the model is more identifiable (i.e. better behaved).
+
+
+## Exercise 3
+
+Now adjust the sample size so that you have N=100, re-simulate the data, and re-run the models with both sets of priors.
+
+  - What do you notice about the results compared to N=1000?
+  
+Also change the prevalence from 50% to 10% or 90%
+
+  - How does this affect your ability to estimate the sensitivity and specificity of test 2 (using strong priors for test 1)?
+
+## Solution 3 {.fragile}
+
+We can change the sample size like so:
+
+```{r}
+# Set a random seed so that the data are reproducible:
+set.seed(2021-09-20)
+
+se <- c(0.9, 0.6)
+sp <- c(0.95, 0.9)
+N <- 100
+prevalence <- 0.5
+
+data <- tibble(Status = rbinom(N, 1, prevalence)) %>%
+  mutate(Test1 = rbinom(N, 1, se[1]*Status + (1-sp[1])*(1-Status))) %>%
+  mutate(Test2 = rbinom(N, 1, se[2]*Status + (1-sp[2])*(1-Status)))
+
+twoXtwo <- with(data, table(Test1, Test2))
+Cross_Classified_Data <- as.numeric(twoXtwo)
+
+results_si_100 <- run.jags('hw_stronginf.txt', n.chains=2)
+results_tr_100 <- run.jags('hw_truncated.txt', n.chains=2)
+
+# Remember to check convergence!
+# plot(results_si_100)
+# plot(results_tr_100)
+
+# Comparison to larger dataset:
+results_si_100
+results_tr_100
+results_si_1000
+results_tr_1000
+```
+
+Note that the posteriors have wider confidence intervals for the smaller dataset, particularly with the weakly informative (truncated) prior for test 1.
+
+With a very low prevalence:
+
+```{r}
+# Set a random seed so that the data are reproducible:
+set.seed(2021-09-20)
+
+se <- c(0.9, 0.6)
+sp <- c(0.95, 0.9)
+N <- 1000
+prevalence <- 0.1
+
+data <- tibble(Status = rbinom(N, 1, prevalence)) %>%
+  mutate(Test1 = rbinom(N, 1, se[1]*Status + (1-sp[1])*(1-Status))) %>%
+  mutate(Test2 = rbinom(N, 1, se[2]*Status + (1-sp[2])*(1-Status)))
+
+twoXtwo <- with(data, table(Test1, Test2))
+Cross_Classified_Data <- as.numeric(twoXtwo)
+
+results_lowprev <- run.jags('hw_stronginf.txt', n.chains=2)
+
+# Remember to check convergence!
+# plot(results_lowprev)
+
+results_lowprev
+```
+
+The specificity for test 2 is well estimated but the sensitivity has large confidence intervals.  This is because there are relatively few true positive samples from which sensitivity can be estimated.  The opposite is true with high prevalence i.e. it is harder to estimate specificity.
+
+
+
+## Optional exercise A {.fragile}
+
+Adapt the model so that you can specify the 'hyper-priors' of the sensitivity and specificity for both tests as data
+
+Now pretend that the manufacturer of the test told you that Test 1 actually has these characteristics:
+
+  * Sensitivity = 0.95 (95% CI: 0.92 - 0.98)
+  * Specificity = 0.999 (95%CI: 0.99 - 1.00)
+
+Re-estimate the values you would need to use for the priors
+
+Now run your adapted model using these values instead (using the original dataset with N=1000 and prevalence=0.5)
+  - What effect does the change to Test 1 priors have on the posterior for Test 2?
+  - Other than comparing to the simulation parameters (which you would not know in real life!) is there any way that you can tell the priors for test 1 are not realistic?
+  
+## Optional solution A {.fragile}
+
+We need two additional parameters where we fix the value in R and pass that value into JAGS as data:
+
+```{r echo=FALSE, comment=''}
+hw_definition <- c("model{
+  Cross_Classified_Data ~ dmulti(prob, N)
+  
+  # Test1- Test2-
+	prob[1] <- (prev * ((1-se[1])*(1-se[2]))) + ((1-prev) * ((sp[1])*(sp[2])))
+	
+  # Test1+ Test2-
+	prob[2] <- (prev * ((se[1])*(1-se[2]))) + ((1-prev) * ((1-sp[1])*(sp[2])))
+
+  # Test1- Test2+
+	prob[3] <- (prev * ((1-se[1])*(se[2]))) + ((1-prev) * ((sp[1])*(1-sp[2])))
+	
+	# Test1+ Test2+
+	prob[4] <- (prev * ((se[1])*(se[2]))) + ((1-prev) * ((1-sp[1])*(1-sp[2])))
+  
+  prev ~ dbeta(1, 1)
+  se[1] ~ dbeta(se_prior[1,1], se_prior[1,2])T(1-sp[1], )
+  sp[1] ~ dbeta(sp_prior[1,1], sp_prior[1,2])
+  se[2] ~ dbeta(se_prior[2,1], se_prior[2,2])T(1-sp[2], )
+  sp[2] ~ dbeta(sp_prior[2,1], sp_prior[2,2])
+
+  #data# Cross_Classified_Data, N, se_prior, sp_prior
+  #monitor# prev, prob, se, sp, deviance
+  #inits# prev, se, sp
+}
+")
+cat(hw_definition, sep='', file='hw_hyperprior.txt')
+cleanup <- c(cleanup, 'hw_hyperprior.txt')
+cat(hw_definition)
+```
+
+```{r}
+# Set a random seed so that the data are reproducible:
+set.seed(2021-09-20)
+
+se <- c(0.9, 0.6)
+sp <- c(0.95, 0.9)
+N <- 1000
+prevalence <- 0.5
+
+data <- tibble(Status = rbinom(N, 1, prevalence)) %>%
+  mutate(Test1 = rbinom(N, 1, se[1]*Status + (1-sp[1])*(1-Status))) %>%
+  mutate(Test2 = rbinom(N, 1, se[2]*Status + (1-sp[2])*(1-Status)))
+
+twoXtwo <- with(data, table(Test1, Test2))
+Cross_Classified_Data <- as.numeric(twoXtwo)
+
+# Additional data needed for the adapted model:
+(se_prior <- matrix(1, ncol=2, nrow=2))
+(sp_prior <- matrix(1, ncol=2, nrow=2))
+
+# New priors from the manufacturer:
+#  * Sensitivity = 0.95 (95% CI: 0.92 - 0.98)
+#  * Specificity = 0.999 (95%CI: 0.99 - 1.00)
+
+PriorGen::findbeta(themedian = 0.95, percentile=0.95, percentile.value = 0.92)
+se_prior[1,] <- c(183.59, 9.98)
+TeachingDemos::hpd(qbeta, shape1=se_prior[1,1], shape2=se_prior[1,2])
+
+PriorGen::findbeta(themedian = 0.999, percentile=0.95, percentile.value = 0.99)
+sp_prior[1,] <- c(199.22, 0.53)
+TeachingDemos::hpd(qbeta, shape1=sp_prior[1,1], shape2=sp_prior[1,2])
+
+# Now our hyper-prior parameters look like:
+se_prior
+sp_prior
+
+# Re-run the model with these prirs:
+results_manufacturer <- run.jags('hw_hyperprior.txt', n.chains=2)
+
+# Remember to check convergence!
+# plot(results_manufacturer)
+
+results_manufacturer
+results_si_1000
+```
+
+Note: you might see some warnings like `Warning in if (class(temp) == "function") {: the condition has length > 1 and only the first element will be used` - this is due to a bug in runjags that will be fixed soon!
+
+Compared to the earlier results (results_si_1000), the sensitivity and specificty of test 1 are estimated to be higher, but the sensitivity of test 2 is estimated to be lower. In fact, the 95% CI for specificity of test 2 no longer contains the true simulation value (0.9). Having too much confidence in the performance of one test will always make all of the other tests look worse! So remember to carefully assess the studies on which you base your priors:  if these come from laboratory validation exercises (which typically involve spiked samples with extremely high concentrations of the target vs completely clean/sterile negative controls) then this may not be a realistic estimation of the sensitivity or specificity in the field.
+
+In general the best way to assess the effect of your priors is by sensitivity analysis:  change the priors slightly (for example make them less informative) and see if your posterior changes substantially.  In this case we can see that the stronger priors for test 1 move the estimates for test 2 substantially, so we would have to be extremely sure that these priors are correct in order to believe the model results.
+
+
+## Summary {.fragile}
+
+- Hui-Walter models can do magical things, but:
+  - They typically exhibit high autocorrelation
+  - They may not converge
+  - Need a larger sample for the same effective sample size
+  - In general, models with worse identifiability perform worse in this regard!
+
+- More informative priors for one test will
+  - Improve identifiability of the model
+  - Impact the inference for all other parameters in the model!
+
+## Day 1 - Wrap-up {.fragile}
+
+- Identifiability Criteria
+  - R; # of tests
+  - S; # of populations
+  
+
+- Parameters (par) to be estimated
+  - S * (2R + 1) ~= 2R + S
+
+- Degrees of freedom (df) offered by the data
+  - S*(2^R - 1)
+
+- Necessary but not always sufficient condition
+  - df >= par
+
+```{r include=FALSE}
+unlink(cleanup)
+```
