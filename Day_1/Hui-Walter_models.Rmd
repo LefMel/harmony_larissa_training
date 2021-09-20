@@ -214,12 +214,6 @@ knitr::kable(res)
 - - -
 
 ```{r echo=FALSE}
-print(pt[["prob[1].plot1"]])
-```
-
-- - -
-
-```{r echo=FALSE}
 print(pt[["prev.plot1"]])
 ```
 
@@ -235,17 +229,6 @@ print(pt[["se[1].plot1"]])
 print(pt[["sp[1].plot1"]])
 ```
 
-- - -
-
-```{r echo=FALSE}
-print(pt[["deviance.plot1"]])
-```
-
-- - -
-
-```{r echo=FALSE}
-print(pt[["crosscorr"]])
-```
 
 ## Label Switching
 
@@ -412,17 +395,18 @@ Cross_Classified_Data <- as.numeric(twoXtwo) #str(Cross_Classified_Data) = Vecto
 
 We know that e.g. the first test has Sensitivity of 90% and Specificity of 95% - so the model *should* be able to tell us that...
 
-## Lunch Break
-
-Hands - On Training Session 
-
-we will come back with some exercises on the hw_definition model
-
 ## Point to consider {.fragile}
 
 How does changing the prior distributions for the se and sp of one test affect the inference for the other test parameters?
 
 What happens if you set an initial value for a parameter outside of the parameter space?
+
+
+## Lunch Break
+
+Hands - On Training Session 
+
+we will come back with some exercises on the hw_definition model
 
 
 ## Exercise 1 {.fragile}
