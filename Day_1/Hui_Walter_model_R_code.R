@@ -8,6 +8,8 @@ library(rjags)
 runjags.options(silent.jags=TRUE, silent.runjags=TRUE)
 set.seed(2021-09-20)
 
+cleanup <- character(0)
+
 
 ## Model Specification
 
@@ -49,7 +51,6 @@ twoXtwo <- matrix(c(36, 4, 12, 48), ncol=2, nrow=2)
 twoXtwo
 
 
-
 library(runjags)
 
 Cross_Classified_Data <- as.numeric(twoXtwo)
@@ -66,65 +67,21 @@ results <- run.jags('basic_hw.txt', n.chains=2)
 
 results
 
-hw_definition_inits <- c("model{
-  Cross_Classified_Data ~ dmulti(prob, N)
-  
-  # Test1+ Test2+
-	prob[1] <- (prev * ((se[1])*(se[2]))) + ((1-prev) * ((1-sp[1])*(1-sp[2])))
-
-  # Test1+ Test2-
-	prob[2] <- (prev * ((se[1])*(1-se[2]))) + ((1-prev) * ((1-sp[1])*(sp[2])))
-
-  # Test1- Test2+
-	prob[3] <- (prev * ((1-se[1])*(se[2]))) + ((1-prev) * ((sp[1])*(1-sp[2])))
-
-  # Test1- Test2-
-	prob[4] <- (prev * ((1-se[1])*(1-se[2]))) + ((1-prev) * ((sp[1])*(sp[2])))
-  
-
-  prev ~ dbeta(1, 1)
-  se[1] ~ dbeta(1, 1)
-  sp[1] ~ dbeta(1, 1)
-  se[2] ~ dbeta(1, 1)
-  sp[2] ~ dbeta(1, 1)
-
-  #data# Cross_Classified_Data, N
-  #monitor# prev, prob, se, sp, deviance
-  #inits# prev, se, sp, .RNG.name, .RNG.seed
-}
-")
-cat(hw_definition_inits, sep='', file='basic_hw_inits.txt')
-cleanup <- c(cleanup, 'basic_hw_inits.txt')
-
-
-
-.RNG.name <- list("base::Super-Duper", "base::Wichmann-Hill")
-.RNG.seed <- list(15, 16)
-results <- run.jags('basic_hw_inits.txt', n.chains=2, silent.jags=TRUE)
-results
 
 pt <- plot(results)
 
 
 res <- summary(results)[,c(1:3,9,11)]
 res[] <- round(res, 3)
-knitr::kable(res)
-
-
-
-
-print(pt[["prob[1].plot1"]])
+res
 
 print(pt[["prev.plot1"]])
 
-
-
 print(pt[["se[1].plot1"]])
 
-
 print(pt[["sp[1].plot1"]])
-print(pt[["deviance.plot1"]])
 
+print(pt[["deviance.plot1"]])
 
 print(pt[["crosscorr"]])
 
@@ -134,18 +91,18 @@ print(pt[["crosscorr"]])
 #Jouden's Index Se + Sp -1 >0:
   
 
-se[1] ~ dbeta(1, 1)
-sp[1] ~ dbeta(1, 1)T(1-se[1], )
-se[1] ~ dbeta(1, 1)T(1-sp[1], )
-sp[1] ~ dbeta(1, 1)
+#se[1] ~ dbeta(1, 1)
+#sp[1] ~ dbeta(1, 1)T(1-se[1], )
+#se[1] ~ dbeta(1, 1)T(1-sp[1], )
+#sp[1] ~ dbeta(1, 1)
 
 
 #This allows the test to be useless, but not worse than useless.
 
 # Alternatively we can have the weakly informative priors:
   
-se[1] ~ dbeta(2, 1)
-sp[1] ~ dbeta(2, 1)
+#se[1] ~ dbeta(2, 1)
+#sp[1] ~ dbeta(2, 1)
 
 #To give the model some information that we expect the test characteristics to be closer to 100% than 0%.
 
@@ -215,9 +172,6 @@ hpd(qbeta, shape1=20, shape2=2)
 library(PriorGen)
 findbeta(themedian = 0.94, percentile=0.95, percentile.value = 0.92)
 hpd(qbeta, shape1=429.95, shape2=27.76)
-
-#Note: `themedian` could also be `themean`
-
 
   
 curve(dbeta(x, shape1=429.95, shape2=27.76))
@@ -313,7 +267,7 @@ cat(hw_definition)
 
 #- Find beta distribution priors for:
 
-#3  * Sensitivity: mean estimate = 0.9 (95% CI: 0.85 - 0.95)
+#  * Sensitivity: mean estimate = 0.9 (95% CI: 0.85 - 0.95)
 #  * Specificity: mean estimate = 0.95 (95%CI: 0.92-0.97)
 
 #- Look at these distributions using curve and hpd
