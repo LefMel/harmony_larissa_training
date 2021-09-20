@@ -45,7 +45,7 @@ plot(x,exp(-x),type="l")
 
 
 u<-runif(sims,0,1)
-mean(exp(-u))*1 # Expected value from simulation
+mean(exp(-u))*(1-0) # Expected value from simulation
 (1-0)^2/sims *var(exp(-u)) # Variance/efficiency of simulation
 1-exp(-1) # Expected value from integration
 plot(density(exp(-u))) 
@@ -59,6 +59,7 @@ varMC<-(b-a)^2/sims *var(exp(-u))
 return(c("MCmean",val1,"INTmean",val2,"MCvar",varMC))
 }
 Monte_Basic(10000,1,5)
+
 Monte_Basic(10000,9,10)
 x=seq(9,10,length=1000)
 plot(x,exp(-x),type="l")
